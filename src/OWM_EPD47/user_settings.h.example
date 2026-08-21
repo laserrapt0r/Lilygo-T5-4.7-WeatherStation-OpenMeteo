@@ -1,0 +1,120 @@
+#ifndef USER_SETTINGS_H_
+#define USER_SETTINGS_H_
+
+#include <Arduino.h>
+#include <IPAddress.h>
+
+// ============================================================================
+//  Template. Copy it to user_settings.h before the first build:
+//
+//      cp user_settings.h.example user_settings.h
+//
+//  user_settings.h is listed in .gitignore and never gets committed, so your
+//  credentials stay on your machine.
+// ============================================================================
+
+// ===== WiFi =================================================================
+const char *ssid     = "YOUR_WIFI_SSID";
+const char *password = "YOUR_WIFI_PASSWORD";
+
+// A static IP saves the DHCP handshake on every wake-up (~1 s of radio time).
+// Set to false to use DHCP instead; the addresses below are then ignored.
+#define USE_STATIC_IP true
+const IPAddress local_IP    (192, 168,   1, 50);
+const IPAddress gateway     (192, 168,   1,  1);
+const IPAddress subnet      (255, 255, 255,  0);
+const IPAddress primaryDNS  (  8,   8,   8,  8);
+const IPAddress secondaryDNS(  1,   1,   1,  1);
+
+#define WIFI_TIMEOUT_MS 10000
+
+// ===== Location =============================================================
+// Decimal degrees. Look yours up on https://open-meteo.com or any map service.
+// The values below are an example (Berlin) - replace them with your own.
+const char *City       = "Berlin";
+const char *Latitude   = "52.5200";
+const char *Longitude  = "13.4050";
+const char *Hemisphere = "north";                 // "north" or "south"
+
+// ===== Open-Meteo ===========================================================
+// No API key required.
+const char serverOpenMeteo[] = "api.open-meteo.com";
+
+// "auto" derives the time zone from the coordinates. Alternatively pass an
+// IANA name such as "Europe%2FBerlin" - URL encoded, the slash must be %2F.
+#define OM_TIMEZONE        "auto"
+
+// max_readings (24) blocks of 3 hours = 72 hours; 75 leaves a little headroom.
+#define OM_FORECAST_HOURS  75
+#define OM_FORECAST_DAYS   3
+
+#define MAX_FETCH_RETRIES  2
+#define RETRY_DELAY_MS     1500
+
+// ===== Time =================================================================
+// POSIX TZ string, see https://github.com/nayarsystems/posix_tz_db
+const char *Timezone  = "CET-1CEST,M3.5.0,M10.5.0/3";
+const char *ntpServer = "0.europe.pool.ntp.org";
+
+// Query NTP only on every n-th wake-up (1 = every time).
+// Raising this saves 1-3 s of radio time per cycle but relies on the RTC. How
+// accurate that is during deep sleep depends on whether the board has a 32 kHz
+// crystal - without one it drifts noticeably. Leave at 1 if unsure.
+#define NTP_SYNC_EVERY 1
+
+// ===== Display and sleep schedule ==========================================
+#define WAKEUP_HOUR       6      // start refreshing at this hour
+#define SLEEP_HOUR       23      // from this hour on, sleep through to WAKEUP_HOUR
+
+#define SLEEP_ACTIVE_MIN 15      // interval while it rains or pressure is moving
+#define SLEEP_STABLE_MIN 45      // interval in stable weather
+#define SLEEP_ERROR_MIN  10      // interval after an error
+#define SLEEP_DELTA_SEC  30      // compensates for RTC inaccuracy
+
+// The precipitation bars are stacked, liquid at the bottom and snow on top.
+// This decides how the snow share is scaled:
+//
+//   true  - depth of fresh snow, the way it piles up outside. 1 cm of snow is
+//           drawn as 10 mm. Closer to what you actually see, but a snowy block
+//           towers over a rainy one: the same amount of water gives 14 mm of
+//           rain or 100 mm of snow, and the axis scales to the snow.
+//   false - water equivalent. The bar totals the precipitation in mm exactly as
+//           Open-Meteo reports it, so rain and snow stay directly comparable.
+//
+// The liquid share is unaffected either way.
+#define SNOW_AS_FALLEN_DEPTH true
+
+// How much pressure change (hPa over 6 h) counts as "weather on the move".
+#define PRESSURE_TREND_THRESHOLD 0.5f
+
+// Run epd_clear() only on every n-th wake-up (1 = every time).
+// Raising this saves a little energy and spares the panel, but leaves visible
+// ghosting because the previous pixels are not wiped.
+#define FULL_REFRESH_EVERY 1
+
+// ===== Buttons and servicing ===============================================
+// The button wakes the device from deep sleep. Without it the device is
+// unreachable for hours at night and is almost impossible to flash.
+//   tap                  -> refresh immediately, even at night
+//   hold while booting   -> upload mode, device stays awake
+//
+// Must be an RTC-capable pin (ESP32-S3: GPIO0-21), otherwise it cannot wake.
+// T5-S3: BUTTON_1 = GPIO21.  Classic T5 4.7: GPIO39.
+#define WAKE_BUTTON_PIN      21
+#define ENABLE_BUTTON_WAKEUP true
+#define SERVICE_HOLD_MS      2000    // hold this long to enter upload mode
+#define SERVICE_MODE_SECONDS 120     // how long the device then stays awake
+
+// ===== Battery =============================================================
+// LilyGo T5-S3 (ESP32-S3): GPIO14 behind a 1:2 divider.
+// Classic T5 4.7 (ESP32):  GPIO36, divider 2.0 as well.
+// Calibrate the divider against a multimeter, see README.
+#define BATTERY_ADC_PIN 14
+#define BATTERY_DIVIDER 2.0f
+
+// ===== Language =============================================================
+#include "lang.h"
+//#include "lang_de.h"
+//#include "lang_fr.h"
+
+#endif /* ifndef USER_SETTINGS_H_ */
