@@ -171,7 +171,10 @@ const char *MoonPhase(int d, int m, int y, const char *hemisphere);
 void  addcloud(int x, int y, int scale, int linesize);
 void  addrain(int x, int y, bool IconSize);
 void  addsnow(int x, int y, bool IconSize);
-void  addtstorm(int x, int y, int scale);
+void  addtstorm(int x, int y, int scale, int bolts);
+void  addhail(int x, int y, int count, bool IconSize);
+void  adddrizzle(int x, int y, bool IconSize);
+void  addicecrystals(int x, int y, bool IconSize);
 void  addsun(int x, int y, int scale);
 void  addmoon(int cx, int cy, int scale);
 void  addstar(int cx, int cy, int r);
@@ -190,6 +193,9 @@ void  ScatteredClouds(int x, int y, bool IconSize, bool night, bool moonUp);
 void  Rain(int x, int y, bool IconSize);
 void  ChanceRain(int x, int y, bool IconSize, bool night, bool moonUp);
 void  Thunderstorms(int x, int y, bool IconSize);
+void  HailStorm(int x, int y, bool IconSize);
+void  FreezingRain(int x, int y, bool IconSize);
+void  Drizzle(int x, int y, bool IconSize);
 void  Snow(int x, int y, bool IconSize);
 void  Mist(int x, int y, bool IconSize, bool night, bool moonUp);
 void  CloudCover(int x, int y, int CloudCover);
@@ -831,7 +837,10 @@ void PatchRestore() {
 void DrawIconCentred(int cx, int x0, int x1, int bandTop, int bandBottom,
                      const char *icon, bool IconSize, bool isDay, long timestamp) {
   const int probe  = (bandTop + bandBottom) / 2;
-  const int margin = (IconSize == LargeIcon) ? 40 : 24;   // measured spill is 9 px
+  // Room for the trial drawing to spread out in. Sideways it needs 9 px for the
+  // sun's outermost ray and the companion stars; downwards it needs enough for
+  // the tallest icon, which is freezing rain at 72 px against a 77 px band.
+  const int margin = (IconSize == LargeIcon) ? 40 : 30;
 
   // Without somewhere to put the patch there is no way to undo the trial
   // drawing, so draw the icon once and leave it uncentred rather than leave
@@ -842,10 +851,15 @@ void DrawIconCentred(int cx, int x0, int x1, int bandTop, int bandBottom,
     return;
   }
 
+  // The trial drawing gets the area to itself. Without this the forecast time
+  // printed above the tile would count as part of the icon, and measuring only
+  // inside the band would clip the taller icons at the bottom and centre them
+  // on the part that happened to fit.
+  fillRect(patchX, patchY, patchW, patchH, White);
   DisplayConditionsSection(cx, probe, icon, IconSize, isDay, timestamp);
 
   int top, bottom, shift = 0;
-  if (InkExtent(x0, x1, bandTop, bandBottom, &top, &bottom))
+  if (InkExtent(x0, x1, patchY, patchY + patchH - 1, &top, &bottom))
     shift = probe - (top + bottom) / 2;
 
   PatchRestore();
@@ -1223,6 +1237,9 @@ void DisplayConditionsSection(int x, int y, const char *IconName, bool IconSize,
   else if (!strcmp(IconName, "chanceRain"))      ChanceRain(x, y, IconSize, night, moonUp);
   else if (!strcmp(IconName, "rain"))            Rain(x, y, IconSize);
   else if (!strcmp(IconName, "thunderstorm"))    Thunderstorms(x, y, IconSize);
+  else if (!strcmp(IconName, "hail"))            HailStorm(x, y, IconSize);
+  else if (!strcmp(IconName, "freezingRain"))    FreezingRain(x, y, IconSize);
+  else if (!strcmp(IconName, "drizzle"))         Drizzle(x, y, IconSize);
   else if (!strcmp(IconName, "snow"))            Snow(x, y, IconSize);
   else if (!strcmp(IconName, "mist"))            Mist(x, y, IconSize, night, moonUp);
   else                                           Nodata(x, y, IconSize);
@@ -1271,9 +1288,12 @@ void addsnow(int x, int y, bool IconSize) {
   }
 }
 
-void addtstorm(int x, int y, int scale) {
+// `bolts` is how many lightning strokes to draw. Four is the full row; fewer
+// are centred on the same spot so the group does not drift to the left.
+void addtstorm(int x, int y, int scale, int bolts) {
   y = y + scale / 2;
-  for (int i = 1; i < 5; i++) {
+  x = x + scale * 1.5 * (4 - bolts) / 2;
+  for (int i = 1; i <= bolts; i++) {
     drawLine(x - scale * 4 + scale * i * 1.5 + 0, y + scale * 1.5, x - scale * 3.5 + scale * i * 1.5 + 0, y + scale, Black);
     drawLine(x - scale * 4 + scale * i * 1.5 + 1, y + scale * 1.5, x - scale * 3.5 + scale * i * 1.5 + 1, y + scale, Black);
     drawLine(x - scale * 4 + scale * i * 1.5 + 2, y + scale * 1.5, x - scale * 3.5 + scale * i * 1.5 + 2, y + scale, Black);
@@ -1452,6 +1472,39 @@ void addsunormoon(int x, int y, int scale, bool night, bool moonUp, SkyKind sky,
   }
 }
 
+// Hailstones. Filled discs read as hail at tile size where an outlined stone
+// would just turn into a grey dot.
+void addhail(int x, int y, int count, bool IconSize) {
+  int r   = (IconSize == LargeIcon) ? 6 : 3;
+  int gap = r * 3;
+  for (int i = 0; i < count; i++)
+    fillCircle(x - (count - 1) * gap / 2 + i * gap, y, r, Black);
+}
+
+// Drizzle: short fine strokes, staggered, deliberately lighter than the long
+// slashes addrain() draws - that is the whole difference between the two.
+void adddrizzle(int x, int y, bool IconSize) {
+  const int n    = 5;
+  int gap   = (IconSize == LargeIcon) ? 19 : 9;
+  int len   = (IconSize == LargeIcon) ? 11 : 5;
+  int thick = (IconSize == LargeIcon) ?  3 : 2;
+  int drop  = (IconSize == LargeIcon) ?  8 : 4;
+  for (int i = 0; i < n; i++) {
+    int px = x - (n - 1) * gap / 2 + i * gap;
+    int py = y + (i % 2) * drop;
+    for (int t = 0; t < thick; t++)
+      drawLine(px + t, py, px + t - len / 2, py + len, Black);
+  }
+}
+
+// Ice crystals below the rain: what separates freezing rain from ordinary
+// rain. Drawn as text for the same reason addsnow() is - the glyph stays
+// legible at tile size.
+void addicecrystals(int x, int y, bool IconSize) {
+  setFont((IconSize == LargeIcon) ? OpenSans18B : OpenSans8B);
+  drawString(x, y, "*  *  *", CENTER);
+}
+
 void addfog(int x, int y, int scale, int linesize) {
   fillRect(x - scale * 3, y + scale * 1.5, scale * 6, linesize, Black);
   fillRect(x - scale * 3, y + scale * 2.0, scale * 6, linesize, Black);
@@ -1531,7 +1584,49 @@ void Thunderstorms(int x, int y, bool IconSize) {
   int s = scale * (IconSize ? 1 : 0.75);
   y += 15;
   addcloud(x, y, s, linesize);
-  addtstorm(x, y, s);
+  addtstorm(x, y, s, 4);
+}
+
+// WMO 96 and 99: thunderstorm with hail. The lightning drops to two strokes and
+// moves left, the hailstones take the space that frees up on the right, both on
+// the same line - so the icon still reads as a thunderstorm, with the hail as
+// the addition rather than as a second thing hanging underneath.
+//
+// The lightning keeps the full scale. addtstorm() places its strokes relative
+// to that scale, so a smaller one does not just draw smaller bolts, it lifts
+// them into the cloud where nothing of them is left to see.
+void HailStorm(int x, int y, bool IconSize) {
+  int scale = (IconSize == LargeIcon) ? Large : Small;
+  int linesize = 5;
+  int s = scale * (IconSize ? 1 : 0.75);
+  y += 15;
+  addcloud(x, y, s, linesize);
+  addtstorm(x - s * 1.7, y, s, 2);
+  addhail(x + s * 2.3, y + (IconSize ? 42 : 21), 3, IconSize);
+}
+
+// WMO 56, 57, 66, 67: freezing drizzle and freezing rain. Rain falling through
+// air below zero - the crystals underneath mark the ice it leaves behind. Both
+// intensities share one icon; what matters is that it freezes, not how hard it
+// comes down.
+void FreezingRain(int x, int y, bool IconSize) {
+  int scale = (IconSize == LargeIcon) ? Large : Small;
+  int linesize = 5;
+  y += 15;
+  addcloud(x, y, scale * (IconSize ? 1 : 0.75), linesize);
+  addrain(x, y, IconSize);
+  addicecrystals(x, y + (IconSize ? 54 : 28), IconSize);
+}
+
+// WMO 51, 53, 55: drizzle. It used to share the shower icon, which draws a sun
+// behind the cloud - but drizzle falls out of an overcast sky, so it gets no
+// sun here, the same as rain and snow.
+void Drizzle(int x, int y, bool IconSize) {
+  int scale = (IconSize == LargeIcon) ? Large : Small;
+  int linesize = 5;
+  y += 15;
+  addcloud(x, y, scale * (IconSize ? 1 : 0.75), linesize);
+  adddrizzle(x, y + (IconSize ? 40 : 20), IconSize);
 }
 
 void Snow(int x, int y, bool IconSize) {
@@ -1545,12 +1640,24 @@ void Snow(int x, int y, bool IconSize) {
 void Mist(int x, int y, bool IconSize, bool night, bool moonUp) {
   int scale = (IconSize == LargeIcon) ? Large : Small;
   int linesize = (IconSize == SmallIcon) ? 3 : 5;
-  // Used to draw the sun unconditionally, so a foggy night showed sunshine.
-  // Same rule as the cloud icons: sun by day, moon if it is up, stars if not.
-  int s = scale * (IconSize ? 1 : 0.75);
-  if (!night)      addsun(x, y, s);
-  else if (moonUp) addmoon(x, y, s);
-  else             addstars(x, y, s);
+  // Used to draw the sun unconditionally, so a foggy night showed sunshine, and
+  // then had a hand-written day/night branch of its own - which meant it missed
+  // the companion stars beside the moon and drew loose stars where every other
+  // icon draws a constellation. It goes through addsunormoon() now, so there is
+  // one rule for all of them. Nothing covers the sky here, so SKY_CLEAR.
+  //
+  // The sun stays small so its rays clear the fog bars below. The moon, the
+  // stars and the constellation carry far less ink and would be unreadable at
+  // that size - the companion stars disappeared inside the moon - so at night
+  // the glyph is drawn at the same size as on the clear-sky icon.
+  // The night glyph sits a little higher than the sun as well: a constellation
+  // spreads more than twice as wide as it is drawn tall, and at the sun's
+  // height its lower stars landed on the top fog bar.
+  int s       = scale * (IconSize ? 1    : 0.75);
+  int nightS  = scale * (IconSize ? 1.25 : 1.0);
+  int nightUp = scale * (IconSize ? 0.35 : 0.3);
+  if (night) addsunormoon(x, y - nightUp, nightS, true,  moonUp, SKY_CLEAR, IconSize);
+  else       addsunormoon(x, y,           s,      false, moonUp, SKY_CLEAR, IconSize);
   addfog(x, y, scale, linesize);
 }
 

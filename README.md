@@ -12,9 +12,10 @@ the framebuffer written out as a PNG, so this is what the panel really shows.*
 
 ![The display in French, showing Paris](./docs/preview-fr.png)
 
-*French, Paris. The thunderstorm at 16:00 is real forecast data — 12 mm in that
-three-hour block, which is the tall bar in the precipitation graph. At 04:00 the
-moon has set and the sky is clear, so the icon shows the Big Dipper.*
+*French, Paris. The hail thunderstorm at 16:00 is real forecast data — WMO code
+96 and 12 mm in that three-hour block, which is the tall bar in the
+precipitation graph. At 04:00 the moon has set and the sky is clear, so the icon
+shows the Big Dipper.*
 
 ![The display in English, showing London](./docs/preview-en.png)
 
@@ -43,7 +44,10 @@ Two practical benefits on top of that:
   sunrise/sunset arrive together, so the radio stays on for a couple of seconds
   per cycle instead of several.
 
-Weather codes follow the WMO WW table exactly as Open-Meteo documents it.
+Weather codes follow the WMO WW table exactly as Open-Meteo documents it. All
+28 of them reach an icon of their own or share one only where the difference
+does not matter — freezing rain, hail and drizzle each have their own, so a
+glaze-ice warning does not look like ordinary rain.
 
 ## What it shows
 
@@ -171,8 +175,8 @@ does not stay on the panel.
 - Weather icons follow Open-Meteo's `is_day`. Wherever a sun would stand during
   the day, something stands at night: the moon if it is above the horizon,
   stars if it is not — and on a clear night the Big Dipper, or Crux with
-  `Hemisphere` set to `south`. Icons that never draw a sun, meaning rain, snow
-  and thunderstorm, stay as they are.
+  `Hemisphere` set to `south`. Icons that never draw a sun stay as they are:
+  rain, freezing rain, drizzle, snow, thunderstorm and hail.
 
 - Independently of all that, a small crescent appears in the corner of every
   icon whenever the moon is above the horizon, including during the day. Each

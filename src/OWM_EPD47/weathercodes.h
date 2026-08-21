@@ -21,7 +21,10 @@
 //   96, 99       Thunderstorm with slight and heavy hail
 //
 // These 28 codes are the only ones Open-Meteo documents. Anything else falls
-// through to the default branch on purpose and renders as "?".
+// through to the default branch on purpose and renders as "?". In particular
+// there is no dust, sand, haze, smoke, squall or tornado code here, and no
+// hail outside a thunderstorm - the full SYNOP table (WMO 4677) has those, but
+// Open-Meteo does not emit them.
 //
 // NOTE: the table used here previously came from the SYNOP ww scheme
 // (WMO 4677) and did NOT line up with these codes - code 61 ("slight rain")
@@ -35,12 +38,15 @@ static const char *weatherCodeToIcon(int weatherCode) {
     case 3:            return "brokenClouds";
     case 45:
     case 48:           return "mist";
-    case 51 ... 57:    return "chanceRain";   // drizzle and freezing drizzle
-    case 61 ... 67:    return "rain";         // rain and freezing rain
+    case 51 ... 55:    return "drizzle";
+    case 56 ... 57:    return "freezingRain"; // freezing drizzle
+    case 61 ... 65:    return "rain";
+    case 66 ... 67:    return "freezingRain"; // freezing rain
     case 71 ... 77:    return "snow";         // snow fall and snow grains
     case 80 ... 82:    return "chanceRain";   // rain showers
     case 85 ... 86:    return "snow";         // snow showers
-    case 95 ... 99:    return "thunderstorm";
+    case 95:           return "thunderstorm";
+    case 96 ... 99:    return "hail";         // thunderstorm with hail
     default:           return "nA";
   }
 }
