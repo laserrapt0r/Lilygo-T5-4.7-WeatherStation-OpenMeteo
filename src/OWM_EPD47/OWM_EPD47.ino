@@ -153,6 +153,7 @@ void  DisplayGraphSection();
 void  DisplayConditionsSection(int x, int y, const char *IconName, bool IconSize, bool isDay,
                                long timestamp);
 bool  isMoonUp(long timestamp);
+int   stringWidth(String text);
 void  DrawPressureAndTrend(int x, int y, float pressure);
 void  DrawRSSI(int x, int y, int rssi);
 void  DrawBattery(int x, int y);
@@ -889,11 +890,14 @@ void DisplayTempHumiPressSection(int x, int y) {
 
 // Pressure reading plus a 6-hour mini graph (now, +3 h, +6 h).
 void DrawPressureAndTrend(int x, int y, float pressure) {
-  drawString(x, y, String(TXT_PRESSURE) + String(pressure, 0) + "hPa", LEFT);
+  String label = String(TXT_PRESSURE) + String(pressure, 0) + "hPa";
+  drawString(x, y, label, LEFT);
 
   const int trendWidth  = 24;
   const int trendHeight = 16;
-  int gx = x + 200;
+  // Measured rather than a fixed offset: "Druck: " is short, "Pressure: " and
+  // "Pression : " are not, and a fixed 200 px put the trend on top of the unit.
+  int gx = x + stringWidth(label) + 12;
   int gy = y;
 
   float p0 = WxForecast[0].Pressure;
@@ -1687,6 +1691,14 @@ void DrawGraph(int x_pos, int y_pos, int gwidth, int gheight, float Y1Min, float
 // ============================================================================
 //  Drawing primitives (wrappers around the EPD driver)
 // ============================================================================
+
+// Width of a string in the current font, in pixels.
+int stringWidth(String text) {
+  char *data = const_cast<char *>(text.c_str());
+  int32_t x1, y1, w, h, xx = 0, yy = 0;
+  get_text_bounds(&currentFont, data, &xx, &yy, &x1, &y1, &w, &h, NULL);
+  return w;
+}
 
 void drawString(int32_t x, int32_t y, String text, alignment align) {
   char *data = const_cast<char *>(text.c_str());

@@ -106,7 +106,15 @@ intervals, button pin and battery divider all live there. The file is listed in
 `.gitignore`, so your credentials never end up in a commit.
 
 Pick the display language at the bottom of that file — `lang.h` (English),
-`lang_de.h` (German) or `lang_fr.h` (French).
+`lang_de.h` (German) or `lang_fr.h` (French). Weekday and month names, the
+weather descriptions, the compass points and the graph titles all follow it:
+
+![The display in French, showing Paris](./docs/preview-fr.png)
+
+![The display in English, showing London](./docs/preview-en.png)
+
+*Same sketch, same moment, live Open-Meteo data — only `user_settings.h`
+differs.*
 
 **Battery calibration.** `BATTERY_DIVIDER` defaults to `2.0` (T5-S3, GPIO14).
 Measure the pack voltage at the JST connector with a multimeter and compare it
