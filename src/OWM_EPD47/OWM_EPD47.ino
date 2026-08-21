@@ -1230,6 +1230,15 @@ void DisplayConditionsSection(int x, int y, const char *IconName, bool IconSize,
 }
 
 void addcloud(int x, int y, int scale, int linesize) {
+  // The cloud is drawn as filled shapes with smaller white ones punched back
+  // out of them. Callers scale the cloud but pass a fixed outline width, and
+  // the second cloud of ScatteredClouds comes out at radius 4 in a forecast
+  // tile - the white circles then get a negative radius and the cloud renders
+  // as a solid lump. Keep at least two pixels of hollow; this leaves every
+  // cloud of radius 7 or more exactly as it was.
+  if (linesize > scale - 2) linesize = scale - 2;
+  if (linesize < 1)         linesize = 1;
+
   fillCircle(x - scale * 3, y, scale, Black);
   fillCircle(x + scale * 3, y, scale, Black);
   fillCircle(x - scale, y - scale, scale * 1.4, Black);
@@ -1278,7 +1287,13 @@ void addtstorm(int x, int y, int scale) {
 }
 
 void addsun(int x, int y, int scale) {
+  // Same reasoning as addcloud: ScatteredClouds draws its sun at 0.7 of an
+  // already small scale, and a fixed 5 px outline left a two-pixel hole in a
+  // seven-pixel disc, with rays as thick as the disc itself. Half the radius
+  // is what the other icons already come out at, so nothing else changes.
   int linesize = 5;
+  if (linesize > scale / 2) linesize = scale / 2;
+  if (linesize < 1)         linesize = 1;
   fillRect(x - scale * 2, y, scale * 4, linesize, Black);
   fillRect(x, y - scale * 2, linesize, scale * 4, Black);
   DrawAngledLine(x + scale * 1.4, y + scale * 1.4, (x - scale * 1.4), (y - scale * 1.4), linesize * 1.5, Black);

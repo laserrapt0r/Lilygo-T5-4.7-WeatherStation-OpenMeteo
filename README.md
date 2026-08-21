@@ -4,12 +4,24 @@ A battery-powered weather display for the LilyGo T5 4.7 inch e-paper board.
 It wakes up every few minutes, fetches a forecast from Open-Meteo, redraws the
 panel and returns to deep sleep.
 
-![Rendered preview of the display](./docs/preview.png)
+![The display in German, showing Berlin](./docs/preview.png)
 
-*Rendered from the actual sketch code with live Open-Meteo data for Berlin —
-the drawing routines, the library's font renderer and the MoonRise library were
-compiled for the host and the framebuffer written out as a PNG, so this is what
-the panel really shows.*
+*German, Berlin. Rendered from the sketch itself: the drawing routines, the
+library's font renderer and the MoonRise library were compiled for the host and
+the framebuffer written out as a PNG, so this is what the panel really shows.*
+
+![The display in French, showing Paris](./docs/preview-fr.png)
+
+*French, Paris. The thunderstorm at 16:00 is real forecast data — 12 mm in that
+three-hour block, which is the tall bar in the precipitation graph. At 04:00 the
+moon has set and the sky is clear, so the icon shows the Big Dipper.*
+
+![The display in English, showing London](./docs/preview-en.png)
+
+*English, London. Same sketch, same moment, live Open-Meteo data for all three —
+only `user_settings.h` differs. The language sets the weekday and month names,
+the weather descriptions, the compass points, the moon phase and the graph
+titles.*
 
 ## Why Open-Meteo
 
@@ -106,15 +118,8 @@ intervals, button pin and battery divider all live there. The file is listed in
 `.gitignore`, so your credentials never end up in a commit.
 
 Pick the display language at the bottom of that file — `lang.h` (English),
-`lang_de.h` (German) or `lang_fr.h` (French). Weekday and month names, the
-weather descriptions, the compass points and the graph titles all follow it:
-
-![The display in French, showing Paris](./docs/preview-fr.png)
-
-![The display in English, showing London](./docs/preview-en.png)
-
-*Same sketch, same moment, live Open-Meteo data — only `user_settings.h`
-differs.*
+`lang_de.h` (German) or `lang_fr.h` (French). All three are shown at the top of
+this page.
 
 **Battery calibration.** `BATTERY_DIVIDER` defaults to `2.0` (T5-S3, GPIO14).
 Measure the pack voltage at the JST connector with a multimeter and compare it
